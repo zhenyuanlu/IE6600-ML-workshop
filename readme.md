@@ -16,7 +16,7 @@ The purpose of the workshop is to make students familiar with how to implement m
 - k nearest neighbours (KNN) (Optional)
 
 
-## Directory structure
+<!-- ## Directory structure -->
 
 <!-- ```text
 ML-workshop-IE6600/
