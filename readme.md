@@ -2,7 +2,7 @@
 course: IE6600-workshop
 version: 0.3
 created date: 02/01/2021
-updated date: 08/10/2021
+updated date: 01/10/2022
 
 ---
 
