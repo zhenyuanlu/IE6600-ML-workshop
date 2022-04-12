@@ -1,0 +1,190 @@
+---
+title: "IE6600"
+subtitle: "<br/>k - Nearest Neighbor"
+author: "Zhenyuan Lu"
+date: "updated: `r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    css: ["xaringan-themer.css","footer.css"]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: 16:9
+    # yolo: 
+    #   img: 'file:///E:/Data%20Analytics%20Engineering/IE6600_ZL/Materials/R/takeABreak.png'
+    #   times: 1 
+---
+
+layout: true
+  
+<div class="my-header"></div>
+
+<div class="my-footer"><span>© 2020 Zhenyuan Lu  
+</span></div> 
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(echo = T,eval=T, warning=F)
+library(tidyverse)
+library(class)
+library(caret)
+```
+
+```{r xaringan-themer, include = FALSE}
+library(xaringanthemer)
+style_mono_accent(base_color = "#76abd9",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Droid Mono")
+)
+
+```
+
+---
+class: center, middle
+
+# k - Nearest Neighbor
+
+
+---
+# Step1: Prerequisites
+To read more about this dataset, refer to:
+Mangasarian OL, Street WN, Wolberg WH. Breast cancer diagnosis and prognosis via linear programming. Operations Research. 1995; 43:570-577.
+```{r eval=F}
+library(tidyverse)
+```
+
+```{r eval=T}
+wbcd <- readr::read_csv("data/kNN_wbcd.csv", guess_max=3000)
+wbcd <- wbcd %>% select(-1, -X33) %>% as.data.frame()
+head(wbcd)
+```
+
+---
+# Step2: exploring and preparing the data
+Many R machine learning classifiers require that the target feature is coded as a
+factor, so we will need to recode the diagnosis variable. We will also take this
+opportunity to give the "B" and "M" values more informative labels using the
+labels parameter:
+```{r eval=T}
+table(wbcd$diagnosis)
+```
+
+
+```{r eval=T}
+wbcd$diagnosis <- factor(
+  wbcd$diagnosis,
+  levels = c("B", "M"),
+  labels = c("Benign", "Malignant")
+)
+```
+
+
+---
+Now, when we look at the prop.table() output, we notice that the values have
+been labeled Benign and Malignant with 62.7 percent and 37.3 percent of the
+masses, respectively:
+```{r eval=T}
+round(prop.table(table(wbcd$diagnosis)) * 100, digits = 1)
+```
+
+
+---
+The remaining 30 features are all numeric, and as expected, they consist of three
+different measurements of ten characteristics. For illustrative purposes, we will
+only take a closer look at three of these features
+```{r eval=T}
+wbcd %>% select(radius_mean,area_mean,smoothness_mean) %>% summary()
+
+```
+
+
+---
+# Transformation – normalizing numeric data
+
+```{r eval=T}
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+```
+
+```{r eval=T}
+wbcd_n <- as.data.frame(lapply(wbcd[2:31], normalize))
+summary(wbcd_n$area_mean)
+```
+
+---
+# Data preparation – creating training and test datasets
+
+```{r}
+ran <- sample(1:nrow(wbcd), 0.9 * nrow(wbcd)) 
+wbcd_train <- wbcd_n[ran,] 
+wbcd_test <- wbcd_n[-ran,] 
+
+wbcd_train_labels <- wbcd[ran, 1]
+wbcd_test_labels <- wbcd[-ran, 1]
+```
+
+
+---
+# Step 3 – training a model on the data
+
+```{r eval=F}
+library(class)
+```
+
+  ```r
+  knn(train, test, class, k)
+  ```
+
+```{r}
+wbcd_test_pred <- knn(
+  train = wbcd_train,
+  test = wbcd_test,
+  cl = wbcd_train_labels,
+  k = 21
+)
+
+```
+
+---
+# Step 4 – evaluating model performance
+
+```{r}
+caret::confusionMatrix(table(x = wbcd_test_labels, y = wbcd_test_pred))
+```
+
+
+---
+# Step 5 – improving model performance
+Transformation – z-score standardization
+
+```{r}
+wbcd_z <- as.data.frame(scale(wbcd[-1]))
+ran <- sample(1:nrow(wbcd_z), 0.9 * nrow(wbcd_z)) 
+wbcd_train <- wbcd_z[ran,] 
+wbcd_test <- wbcd_z[-ran,] 
+wbcd_train_labels <- wbcd[ran, 1]
+wbcd_test_labels <- wbcd[-ran, 1]
+```
+
+---
+```{r}
+wbcd_test_pred <- knn(
+  train = wbcd_train,
+  test = wbcd_test,
+  cl = wbcd_train_labels,
+  k = 21
+)
+```
+
+---
+```{r}
+caret::confusionMatrix(table(x = wbcd_test_labels, y = wbcd_test_pred))
+```
+
+
+

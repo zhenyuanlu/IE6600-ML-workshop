@@ -1,0 +1,270 @@
+---
+title: "IE6600"
+subtitle: "<br/>Neural Network and Deep Learning"
+author: "Zhenyuan Lu"
+date: "updated: `r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, eval = T, cache=T, warning=F, message=F)
+
+```
+
+# Install keras
+```{r }
+# install.packages("devtools")
+# devtools::install_github("rstudio/keras")
+# or
+# install.packages("keras")
+# library(keras)
+# install_keras()
+# 
+# # if anyissues try using the following methods
+# install.packages("devtools")
+# require(devtools)
+# install_github("rstudio/reticulate")
+# install_github("rstudio/tensorflow")
+# install_github("rstudio/keras")
+```
+
+
+# Load packages
+```{r}
+suppressPackageStartupMessages({
+  library(mlbench)
+  library(tidyverse)
+  library(rsample)
+  library(keras)
+  library(recipes)
+  library(yardstick)
+  library(corrr)
+})
+
+```
+
+# Load breast cancer data
+```{r}
+bc <- readr::read_csv('data/NN_data.csv')
+bc <- bc %>% select(-"...33")
+# data("BreastCancer")
+# bc1 <- BreastCancer
+# # convert to the numerical variables ----
+# bc[,2:10] <- lapply(bc[,2:10], function(x)as.numeric(as.character(x)))
+head(bc)
+dim(bc)
+```
+
+# Preprocess Data
+```{r}
+# remove id and NA values ----
+bc <- bc %>% select(-id) %>% drop_na()
+head(bc)
+dim(bc)
+```
+# Partition data
+```{r}
+set.seed(062020)
+
+(train_test_split <-
+    rsample::initial_split (bc, prop = 0.8))
+
+train_tbl <- training (train_test_split)
+test_tbl  <- testing (train_test_split)
+```
+
+
+# Create recipes for preparing data
+```{r}
+rec_obj <- 
+  recipe (diagnosis ~ ., data = train_tbl) %>%
+  # center and scale data ----
+  step_center (all_predictors(), -all_outcomes()) %>%
+  step_scale (all_predictors(), -all_outcomes()) %>%
+  prep (data = train_tbl)
+
+save (rec_obj, file = 'rec_obj.Rda')
+
+```
+
+
+# Bake your recipes
+```{r}
+x_train_tbl <- 
+  bake (rec_obj, new_data = train_tbl) %>% 
+  select (-diagnosis)
+
+x_test_tbl <- 
+  bake (rec_obj, new_data = test_tbl) %>% 
+  select (-diagnosis)
+
+head(x_test_tbl)
+```
+
+# One hot encoding for your class
+```{r}
+y_train_vec <- ifelse (pull (train_tbl, diagnosis) == "M", 1, 0)
+
+y_test_vec  <- ifelse (pull (test_tbl, diagnosis) == "M", 1, 0)
+
+```
+
+
+# Neural Network and Deep learning with keras
+```{r}
+model_keras <- keras_model_sequential()
+
+
+model_keras %>%
+  
+  layer_dense (
+    units              = 30,
+    kernel_initializer = "uniform",
+    activation         = "relu",
+    input_shape        = ncol(x_train_tbl)
+  ) %>%
+  layer_dropout (rate = 0.1) %>%
+  
+  layer_dense (units= 15,
+               kernel_initializer = "uniform",
+               activation= "relu") %>%
+
+  layer_dropout (rate = 0.4) %>%
+  
+  
+  layer_dense (units = 1,
+               kernel_initializer = "uniform",
+               activation= "sigmoid") %>%
+  
+  compile (optimizer = 'adam',
+           loss = 'binary_crossentropy',
+           metrics= c('accuracy')) 
+
+model_keras
+```
+
+```{r}
+# system.time (
+#   history <- fit (
+#     object           = model_keras,
+#     x                = as.matrix (x_train_tbl),
+#     y                = y_train_vec,
+#     batch_size       = 30,
+#     epochs           = 300,
+#     validation_split = 0.30))
+# 
+
+system.time (
+  history <- fit (
+    object = model_keras,
+    x = as.matrix (x_train_tbl),
+    y = y_train_vec,
+    callbacks = callback_early_stopping(
+      monitor = "val_loss",
+      min_delta = 0.01,
+      patience = 10,
+      verbose = 0.5,
+      mode = "auto",
+      baseline = NULL,
+      restore_best_weights = FALSE
+    ),
+    batch_size       = 50,
+    epochs           = 100,
+    validation_split = 0.30
+  )
+)
+
+```
+
+
+
+# Y hat
+```{r}
+
+yhat_keras_class_vec <- model_keras %>% predict(as.matrix(x_test_tbl)) %>% `>`(0.5) %>% k_cast("int32") %>% as.vector()
+
+# Deprecated
+# yhat_keras_class_vec <-
+#   predict_classes(object = model_keras,
+#                    x = as.matrix(x_test_tbl)) %>%
+#   as.vector()
+
+```
+
+# Y hat probability
+```{r}
+yhat_keras_prob_vec <- 
+  predict(object = model_keras,
+                 x = as.matrix(x_test_tbl)) %>%
+  as.vector()
+```
+# Confusion Table
+```{r}
+estimates_keras_tbl <- tibble(
+    truth = as.factor(y_test_vec) %>%
+      fct_recode (Positive = "1", Negative = "0"),
+    estimate = as.factor(yhat_keras_class_vec) %>%
+      fct_recode (Positive = "1", Negative = "0"),
+    class_prob = yhat_keras_prob_vec
+  )
+
+estimates_keras_tbl %>% conf_mat (truth, estimate)
+
+```
+# Accuracy
+```{r}
+estimates_keras_tbl %>% metrics (truth, estimate)
+```
+
+# AUC
+```{r}
+estimates_keras_tbl %>% roc_auc(truth, class_prob)
+```
+
+
+```{r}
+corrr_analysis <- x_train_tbl %>%
+    mutate (diagnosis = y_train_vec) %>%
+    correlate () %>%
+    focus (diagnosis) %>%
+    rename (feature = term) %>%
+    arrange (abs(diagnosis)) %>%
+    mutate (feature = as_factor(feature)) 
+
+corrr_analysis %>%
+  
+  ggplot (aes (x = diagnosis, y = fct_reorder(feature, desc(diagnosis)))) +
+  geom_point () +
+  
+  geom_segment (aes(xend = 0, yend = feature),
+                
+                data = corrr_analysis %>% filter(diagnosis > 0)) +
+  geom_point (data = corrr_analysis %>% filter(diagnosis > 0)) +
+  
+  geom_segment (aes(xend = 0, yend = feature),
+                
+                data = corrr_analysis %>% filter(diagnosis < 0)) +
+  geom_point (data = corrr_analysis %>% filter(diagnosis < 0)) +
+  
+  geom_vline (xintercept = 0,
+              
+              size = 1,
+              linetype = 2) +
+  geom_vline (xintercept = -0.25,
+              
+              size = 1,
+              linetype = 2) +
+  geom_vline (xintercept = 0.25,
+              
+              size = 1,
+              linetype = 2) +
+  
+  theme_bw () +
+  labs (title = "diagnosis Correlation Analysis",
+        subtitle = "Positive  vs. Negative",
+        y = "Feature Importance")
+```
+
+
+
+
