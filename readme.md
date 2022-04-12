@@ -6,7 +6,8 @@ updated date: 08/10/2021
 
 ---
 
-
+![R](https://img.shields.io/badge/R-4.1.2-blue?style=flat&logo=appveyor&logo=python&logoColor=informational?style=flat)
+![Keras](https://img.shields.io/badge/Keras-2.8.0-yellowgreen?style=flat&logo=Keras&logoColor=white) 
 
 # Workshop Topics
 
@@ -14,7 +15,7 @@ The purpose of the workshop is to make students familiar with how to implement m
 
 - Introduction to neural network and deep learning
 - Principle Components Analysis (PCA) for Visualization
-- k nearest neighbours (KNN)
+- k nearest neighbours (KNN) (Optional)
 
 
 ## Directory structure
