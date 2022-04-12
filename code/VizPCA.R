@@ -1,16 +1,3 @@
----
-title: "PCA"
-author: "Zhenyuan Lu"
-date: "10/21/2021"
-output: pdf_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r}
 vizPCA <- function(df, v, rv) {
   if (!requireNamespace("ggalt", "tidyverse"))
     install.packages("tidyverse", "ggalt")
@@ -41,4 +28,3 @@ vizPCA <- function(df, v, rv) {
 }
 
 vizPCA(iris, 1:4, Species)
-```
