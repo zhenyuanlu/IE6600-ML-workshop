@@ -14,6 +14,7 @@ The purpose of the workshop is to make students familiar with how to implement m
 - Introduction to neural network and deep learning
 - Principle Components Analysis (PCA) for Visualization
 - k nearest neighbours (KNN) (Optional)
+- Logistic Regression
 
 
 <!-- ## Directory structure -->
