@@ -18,7 +18,7 @@ The purpose of the workshop is to make students familiar with how to implement m
 
 ## Directory structure
 
-```text
+<!-- ```text
 ML-workshop-IE6600/
     code/
         data/
@@ -33,7 +33,7 @@ ML-workshop-IE6600/
         NN_workshop.pdf
         VizPCA_workshop.pdf
     readme.md
-```
+``` -->
 
 ## Environment
 
