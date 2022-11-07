@@ -6,22 +6,25 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning=F)
+if (!requireNamespace("ggalt", "tidyverse"))
+  install.packages("tidyverse", "ggalt")
+library(tidyverse)
+library(ggalt)
+source("functions/pcomp.R")
 ```
 
 
 ```{r}
-vizPCA <- function(df, v, rv) {
-  if (!requireNamespace("ggalt", "tidyverse"))
-    install.packages("tidyverse", "ggalt")
-  library(tidyverse)
-  library(ggalt)
+vizPCA <- function(df, v, rv, center_ = T, scale_ = F) {
   theme_set(theme_classic())
+  
   var <- df %>% select(all_of(v))
   feature <- df[[substitute(rv)]]
-  pca <- prcomp(var)
+  pca <- pcomp(var, center = center_, scale = scale_)
   var_pc <- data.frame(pca$x, feature = feature)
   var_pcs <- vector("list", length(var))
+  
   p <-
     ggplot(var_pc, aes(x = PC1, y = PC2, col = feature)) +
     geom_point(aes(shape = feature), size = 2) +   # draw points
@@ -30,6 +33,7 @@ vizPCA <- function(df, v, rv) {
     # change axis limits ----
   coord_cartesian(xlim = 1.2 * c(min(var_pc$PC1), max(var_pc$PC1)),
                   ylim = 1.2 * c(min(var_pc$PC2), max(var_pc$PC2)))
+  
   for (i in 1:length(var)) {
     var_pcs[[i]] <-
       var_pc[var_pc$feature == unique(var_pc$feature)[i],]
@@ -40,5 +44,5 @@ vizPCA <- function(df, v, rv) {
   return(p)
 }
 
-vizPCA(iris, 1:4, Species)
+vizPCA(iris, 1:4, Species, center_ = T, scale_ = F)
 ```
