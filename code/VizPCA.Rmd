@@ -27,7 +27,7 @@ vizPCA <- function(df, v, rv, center_ = T, scale_ = F) {
   
   p <-
     ggplot(var_pc, aes(x = PC1, y = PC2, col = feature)) +
-    geom_point(aes(shape = feature), size = 2) +   # draw points
+    geom_point(aes(shape = feature), size = 2) + 
     labs(title = "Clustering",
          subtitle = "With principal components PC1 and PC2 as X and Y axis") +
     # change axis limits ----

@@ -1,6 +1,6 @@
 ---
 course: IE6600-workshop
-version: 0.3
+version: 1.0.0
 
 ---
 
